@@ -53,14 +53,27 @@ sep
 info "Verifying Go toolchain"
 
 # .replit was just patched — Go may not be in PATH yet for this shell session.
-# Search the nix store for a go binary and add it to PATH if found.
+# Check fast known locations before falling back to nix-env install.
 if ! command -v go &>/dev/null; then
-  info "go not in PATH — searching nix store"
-  GO_BIN=$(find /nix/store -maxdepth 5 -name "go" -path "*/go/bin/go" 2>/dev/null | sort -rV | head -1)
-  if [ -n "$GO_BIN" ]; then
-    export PATH="$(dirname "$GO_BIN"):$PATH"
-    ok "Found Go via nix store — added to PATH"
-  fi
+  info "go not in PATH — checking known locations"
+  for _GOCANDIDATE in \
+    "$HOME/.nix-profile/bin/go" \
+    "/run/current-system/sw/bin/go" \
+    "/nix/var/nix/profiles/default/bin/go"; do
+    if [ -x "$_GOCANDIDATE" ]; then
+      export PATH="$(dirname "$_GOCANDIDATE"):$PATH"
+      ok "Found Go at $_GOCANDIDATE"
+      break
+    fi
+  done
+fi
+
+# Still not found — install directly via nix-env (fast, targeted)
+if ! command -v go &>/dev/null; then
+  info "Installing Go via nix-env"
+  nix-env -iA nixpkgs.go_1_25 2>&1 | tail -3 \
+    || nix-env -iA nixpkgs.go 2>&1 | tail -3
+  export PATH="$HOME/.nix-profile/bin:$PATH"
 fi
 
 if ! command -v go &>/dev/null; then
