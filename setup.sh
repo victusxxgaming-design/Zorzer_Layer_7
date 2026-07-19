@@ -58,14 +58,36 @@ go build -o zorzer .
 chmod +x zorzer
 ok "Binary built → ./zorzer"
 
+# ── 5. Create config.json template ───────────────────────────────────────────
+if [ ! -f config.json ]; then
+  cat > config.json << 'CONFIGEOF'
+{
+  "supabase": {
+    "url": "YOUR_SUPABASE_URL",
+    "service_key": "YOUR_SUPABASE_SERVICE_KEY"
+  },
+  "api": {
+    "port": 8080
+  },
+  "defaults": {
+    "method": "httpget",
+    "workers": 2048,
+    "duration": 30
+  }
+}
+CONFIGEOF
+  ok "config.json template created"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo
 echo -e "${GREEN}${BOLD}  Done.${RESET}"
 echo
 echo -e "${YELLOW}${BOLD}  Next steps:${RESET}"
 echo -e "  1. Create a Supabase project and a table called ${BOLD}layer7_apis${RESET}"
-echo -e "  2. Open ${CYAN}Zorzer_Layer_7/config.json${RESET} and fill in:"
-echo -e "       supabase.url        → your Supabase project URL"
+echo -e "  2. Edit ${CYAN}Zorzer_Layer_7/config.json${RESET} and fill in:"
+echo -e "       supabase.url         → your Supabase project URL"
 echo -e "       supabase.service_key → your Supabase service role key"
-echo -e "  3. Start the server:  ${CYAN}${BOLD}./zorzer -api${RESET}  (or hit Run)"
+echo -e "  3. Run the server:"
+echo -e "     ${CYAN}${BOLD}cd Zorzer_Layer_7 && ./zorzer -api${RESET}"
 echo
