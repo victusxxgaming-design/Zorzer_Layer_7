@@ -13,8 +13,10 @@ warn() { echo -e "${YELLOW}${BOLD}  ⚠${RESET}  $*"; }
 fail() { echo -e "${RED}${BOLD}  ✘${RESET}  $*"; exit 1; }
 sep()  { echo -e "${DIM}  ────────────────────────────────────────${RESET}"; }
 
-# ── 0. Write .replit with go-1.25 module (absolute first command) ─────────────
-cat > .replit << 'REPLITEOF'
+# ── 0. Write .replit with go-1.25 module to workspace root (absolute first) ───
+# Replit only reads .replit from the workspace root, not subdirectories.
+WORKSPACE_ROOT="${REPL_HOME:-/home/runner/workspace}"
+cat > "$WORKSPACE_ROOT/.replit" << 'REPLITEOF'
 modules = ["go-1.25"]
 
 [workflows]
@@ -45,7 +47,7 @@ waitForPort = 8080
 localPort = 8080
 externalPort = 80
 REPLITEOF
-ok ".replit written with modules = [\"go-1.25\"]"
+ok ".replit written to $WORKSPACE_ROOT with modules = [\"go-1.25\"]"
 
 # ── banner ────────────────────────────────────────────────────────────────────
 clear 2>/dev/null || true
