@@ -1378,7 +1378,14 @@ func main() {
 	pFile := flag.String("p", "", "proxy file path (optional, direct if omitted)")
 	verbose := flag.Bool("v", false, "print request errors to stderr")
 	rateDelay := flag.Int("r", 0, "delay in ms between requests per worker (0 = unlimited)")
+	apiMode := flag.Bool("api", false, "start HTTP API server (disables CLI attack mode)")
+	apiPort := flag.Int("api-port", 8080, "port for the HTTP API server")
 	flag.Parse()
+
+	if *apiMode {
+		StartAPIServer(*apiPort)
+		return
+	}
 
 	if *target == "" {
 		fmt.Println(`
