@@ -1,38 +1,51 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
 #  Zorzer L7 Stresser — setup script
-#  Installs all dependencies, configures Replit modules, builds the binary.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 # ── colours ───────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'
 CYAN='\033[0;36m'; BOLD='\033[1m'; DIM='\033[2m'; RESET='\033[0m'
-
 ok()   { echo -e "${GREEN}${BOLD}  ✔${RESET}  $*"; }
 info() { echo -e "${CYAN}${BOLD}  ▸${RESET}  $*"; }
 warn() { echo -e "${YELLOW}${BOLD}  ⚠${RESET}  $*"; }
 fail() { echo -e "${RED}${BOLD}  ✘${RESET}  $*"; exit 1; }
 sep()  { echo -e "${DIM}  ────────────────────────────────────────${RESET}"; }
 
-# ── 0. Inject go-1.25 into .replit (runs before everything else) ──────────────
-if [ -f ".replit" ]; then
-  if grep -q "go-1.25" ".replit"; then
-    echo -e "${GREEN}${BOLD}  ✔${RESET}  .replit: go-1.25 already present"
-  else
-    if grep -q "^modules" ".replit"; then
-      # Existing modules line — insert go-1.25 at the front of the array
-      sed -i 's/^modules = \["/modules = ["go-1.25", "/' ".replit" 2>/dev/null \
-        || sed -i 's/^modules = \[/modules = ["go-1.25", /' ".replit"
-    else
-      # No modules line at all — prepend one
-      sed -i '1s/^/modules = ["go-1.25"]\n/' ".replit"
-    fi
-    echo -e "${GREEN}${BOLD}  ✔${RESET}  .replit: go-1.25 injected into modules"
-  fi
-else
-  echo -e "${YELLOW}${BOLD}  ⚠${RESET}  .replit not found — skipping module injection"
-fi
+# ── 0. Write .replit with go-1.25 module (absolute first command) ─────────────
+cat > .replit << 'REPLITEOF'
+modules = ["go-1.25"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "fuser -k 8080/tcp 2>/dev/null || true; go build -o zorzer . && chmod +x zorzer && ./zorzer -api"
+waitForPort = 8080
+
+[[ports]]
+localPort = 8080
+externalPort = 80
+REPLITEOF
+ok ".replit written with modules = [\"go-1.25\"]"
 
 # ── banner ────────────────────────────────────────────────────────────────────
 clear 2>/dev/null || true
@@ -52,14 +65,16 @@ sep
 # ── 1. Verify Go toolchain ────────────────────────────────────────────────────
 info "Verifying Go toolchain"
 
-# .replit was just patched — Go may not be in PATH yet for this shell session.
-# Check fast known locations before falling back to nix-env install.
+# .replit was just written — Go may not be in PATH yet for this shell session.
+# Check fast known locations before giving up.
 if ! command -v go &>/dev/null; then
   info "go not in PATH — checking known locations"
   for _GOCANDIDATE in \
     "$HOME/.nix-profile/bin/go" \
     "/run/current-system/sw/bin/go" \
-    "/nix/var/nix/profiles/default/bin/go"; do
+    "/nix/var/nix/profiles/default/bin/go" \
+    "/home/runner/.replit/modules/go-1.25/bin/go" \
+    "/opt/buildhome/go/bin/go"; do
     if [ -x "$_GOCANDIDATE" ]; then
       export PATH="$(dirname "$_GOCANDIDATE"):$PATH"
       ok "Found Go at $_GOCANDIDATE"
@@ -68,23 +83,21 @@ if ! command -v go &>/dev/null; then
   done
 fi
 
-# Still not found — install directly via nix-env (fast, targeted)
 if ! command -v go &>/dev/null; then
-  info "Installing Go via nix-env"
-  nix-env -iA nixpkgs.go_1_25 2>&1 | tail -3 \
-    || nix-env -iA nixpkgs.go 2>&1 | tail -3
-  export PATH="$HOME/.nix-profile/bin:$PATH"
-fi
-
-if ! command -v go &>/dev/null; then
-  fail "Go not found. Close this shell, reopen it (Replit will activate go-1.25), then re-run: bash setup.sh"
+  echo
+  echo -e "${YELLOW}${BOLD}  .replit has been written with go-1.25.${RESET}"
+  echo -e "${YELLOW}  Replit needs a fresh shell to activate the module.${RESET}"
+  echo -e "${YELLOW}  Close this shell, open a new one, then re-run:${RESET}"
+  echo -e "${CYAN}${BOLD}    bash setup.sh${RESET}"
+  echo
+  exit 1
 fi
 
 GO_VER=$(go version | awk '{print $3}')
 ok "Found ${GO_VER}"
 sep
 
-# ── 3. System tools (fuser / psmisc) ─────────────────────────────────────────
+# ── 2. System tools (fuser / psmisc) ─────────────────────────────────────────
 info "Checking system tools"
 if command -v fuser &>/dev/null; then
   ok "fuser already available"
@@ -92,15 +105,17 @@ else
   info "fuser not found — installing psmisc via nix-env"
   if command -v nix-env &>/dev/null; then
     nix-env -iA nixpkgs.psmisc 2>&1 | tail -3
-    command -v fuser &>/dev/null && ok "psmisc installed — fuser now available" \
+    export PATH="$HOME/.nix-profile/bin:$PATH"
+    command -v fuser &>/dev/null \
+      && ok "psmisc installed — fuser now available" \
       || warn "psmisc installed but fuser not in PATH yet; restart the workflow"
   else
-    warn "nix-env not available — install psmisc manually if you need port auto-kill"
+    warn "nix-env not available — install psmisc manually if needed"
   fi
 fi
 sep
 
-# ── 4. config.json ────────────────────────────────────────────────────────────
+# ── 3. config.json ────────────────────────────────────────────────────────────
 info "Checking config.json"
 CONFIG_FILE="${CONFIG_PATH:-config.json}"
 if [ ! -f "$CONFIG_FILE" ]; then
@@ -121,22 +136,22 @@ if [ ! -f "$CONFIG_FILE" ]; then
   }
 }
 CONFIGEOF
-  warn "Edit config.json and fill in your Supabase credentials, then re-run or start the workflow."
+  warn "Edit config.json and fill in your Supabase credentials, then re-run."
 else
-  SB_URL=$(python3 -c "import json,sys; d=json.load(open('$CONFIG_FILE')); print(d.get('supabase',{}).get('url',''))" 2>/dev/null || echo "")
-  SB_KEY=$(python3 -c "import json,sys; d=json.load(open('$CONFIG_FILE')); print(d.get('supabase',{}).get('service_key',''))" 2>/dev/null || echo "")
+  SB_URL=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d.get('supabase',{}).get('url',''))" 2>/dev/null || echo "")
+  SB_KEY=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d.get('supabase',{}).get('service_key',''))" 2>/dev/null || echo "")
   [ -n "$SB_URL" ] && ok "supabase.url = $SB_URL" || warn "supabase.url is empty"
-  [ -n "$SB_KEY" ] && ok "supabase.service_key is set"  || warn "supabase.service_key is empty"
+  [ -n "$SB_KEY" ] && ok "supabase.service_key is set" || warn "supabase.service_key is empty"
 fi
 sep
 
-# ── 5. Go module dependencies ─────────────────────────────────────────────────
+# ── 4. Go module dependencies ─────────────────────────────────────────────────
 info "Running go mod tidy"
 go mod tidy 2>&1 | sed 's/^/     /'
 ok "go.mod + go.sum up to date"
 sep
 
-# ── 6. Build ──────────────────────────────────────────────────────────────────
+# ── 5. Build ──────────────────────────────────────────────────────────────────
 info "Building zorzer binary"
 go build -o zorzer . 2>&1 | sed 's/^/     /'
 chmod +x zorzer
@@ -144,7 +159,7 @@ BINARY_SIZE=$(du -sh zorzer | cut -f1)
 ok "Binary built → ./zorzer (${BINARY_SIZE})"
 sep
 
-# ── 7. Summary ────────────────────────────────────────────────────────────────
+# ── 6. Summary ────────────────────────────────────────────────────────────────
 echo
 echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
 echo
