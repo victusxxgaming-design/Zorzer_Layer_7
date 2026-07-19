@@ -51,9 +51,22 @@ sep
 
 # ── 1. Verify Go toolchain ────────────────────────────────────────────────────
 info "Verifying Go toolchain"
+
+# .replit was just patched — Go may not be in PATH yet for this shell session.
+# Search the nix store for a go binary and add it to PATH if found.
 if ! command -v go &>/dev/null; then
-  fail "Go not found. Install go-1.25 via the Replit Packages panel and re-run."
+  info "go not in PATH — searching nix store"
+  GO_BIN=$(find /nix/store -maxdepth 5 -name "go" -path "*/go/bin/go" 2>/dev/null | sort -rV | head -1)
+  if [ -n "$GO_BIN" ]; then
+    export PATH="$(dirname "$GO_BIN"):$PATH"
+    ok "Found Go via nix store — added to PATH"
+  fi
 fi
+
+if ! command -v go &>/dev/null; then
+  fail "Go not found. Close this shell, reopen it (Replit will activate go-1.25), then re-run: bash setup.sh"
+fi
+
 GO_VER=$(go version | awk '{print $3}')
 ok "Found ${GO_VER}"
 sep
