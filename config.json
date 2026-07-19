@@ -1,0 +1,14 @@
+{
+  "supabase": {
+    "url": "",
+    "service_key": ""
+  },
+  "api": {
+    "port": 8080
+  },
+  "defaults": {
+    "method": "httpget",
+    "workers": 2048,
+    "duration": 30
+  }
+}
