@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -104,6 +105,13 @@ func printAPISplash(port int) {
 		bold   = "\033[1m"
 		dim    = "\033[2m"
 	)
+
+	// Use the Replit public dev domain when available, else fall back to localhost.
+	base := fmt.Sprintf("http://localhost:%d", port)
+	if domain := os.Getenv("REPLIT_DEV_DOMAIN"); domain != "" {
+		base = "https://" + domain
+	}
+
 	fmt.Println(bold + cyan + `
   ███████╗██╗      █████╗ ██╗   ██╗███████╗██████╗      █████╗ ██████╗ ██╗
   ██╔════╝██║     ██╔══██╗╚██╗ ██╔╝██╔════╝██╔══██╗    ██╔══██╗██╔══██╗██║
@@ -112,13 +120,13 @@ func printAPISplash(port int) {
   ███████║███████╗██║  ██║   ██║   ███████╗██║  ██║    ██║  ██║██║     ██║
   ╚══════╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚═╝     ╚═╝` + reset)
 	fmt.Println()
-	fmt.Println(dim + "  ┌──────────────────────────────────────────────────┐" + reset)
-	fmt.Println(dim + "  │" + bold + cyan + "               API SERVER READY                   " + reset + dim + "│" + reset)
-	fmt.Println(dim + "  ├──────────────────────────────────────────────────┤" + reset)
-	fmt.Printf(dim+"  │"+reset+"  "+green+"POST"+reset+"  %-44s"+dim+"│"+reset+"\n", fmt.Sprintf("http://0.0.0.0:%d/api/attack/start", port))
-	fmt.Printf(dim+"  │"+reset+"  "+yellow+"POST"+reset+"  %-44s"+dim+"│"+reset+"\n", fmt.Sprintf("http://0.0.0.0:%d/api/attack/stop", port))
-	fmt.Printf(dim+"  │"+reset+"  "+cyan+"GET"+reset+"   %-44s"+dim+"│"+reset+"\n", fmt.Sprintf("http://0.0.0.0:%d/api/attack/status", port))
-	fmt.Printf(dim+"  │"+reset+"  "+cyan+"GET"+reset+"   %-44s"+dim+"│"+reset+"\n", fmt.Sprintf("http://0.0.0.0:%d/api/health", port))
-	fmt.Println(dim + "  └──────────────────────────────────────────────────┘" + reset)
+	fmt.Println(dim + "  ┌──────────────────────────────────────────────────────────────┐" + reset)
+	fmt.Println(dim + "  │" + bold + cyan + "                    API SERVER READY                          " + reset + dim + "│" + reset)
+	fmt.Println(dim + "  ├──────────────────────────────────────────────────────────────┤" + reset)
+	fmt.Printf(dim+"  │"+reset+"  "+green+"POST"+reset+"  %-56s"+dim+"│"+reset+"\n", base+"/api/attack/start")
+	fmt.Printf(dim+"  │"+reset+"  "+yellow+"POST"+reset+"  %-56s"+dim+"│"+reset+"\n", base+"/api/attack/stop")
+	fmt.Printf(dim+"  │"+reset+"  "+cyan+"GET"+reset+"   %-56s"+dim+"│"+reset+"\n", base+"/api/attack/status")
+	fmt.Printf(dim+"  │"+reset+"  "+cyan+"GET"+reset+"   %-56s"+dim+"│"+reset+"\n", base+"/api/health")
+	fmt.Println(dim + "  └──────────────────────────────────────────────────────────────┘" + reset)
 	fmt.Println()
 }
