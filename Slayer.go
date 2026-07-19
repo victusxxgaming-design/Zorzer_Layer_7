@@ -1371,6 +1371,8 @@ func Worker(id int, targetURL string, method string, clients []*http.Client, sto
 	}
 }
 func main() {
+	loadConfig()
+
 	target := flag.String("t", "", "target URL (e.g. http://1.2.3.4)")
 	method := flag.String("m", "httpget", "method: httpget, httppost, rudy, apiflood, rapidreset, wsflood")
 	workerCount := flag.Int("w", 2048, "number of workers")
@@ -1379,7 +1381,7 @@ func main() {
 	verbose := flag.Bool("v", false, "print request errors to stderr")
 	rateDelay := flag.Int("r", 0, "delay in ms between requests per worker (0 = unlimited)")
 	apiMode := flag.Bool("api", false, "start HTTP API server (disables CLI attack mode)")
-	apiPort := flag.Int("api-port", 8080, "port for the HTTP API server")
+	apiPort := flag.Int("api-port", cfg.API.Port, "port for the HTTP API server")
 	flag.Parse()
 
 	if *apiMode {

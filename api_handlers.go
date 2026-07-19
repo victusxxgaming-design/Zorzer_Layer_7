@@ -27,16 +27,16 @@ func fail(w http.ResponseWriter, status int, msg string) {
 
 // handleStart handles POST /api/attack/start
 //
-// Body (all fields optional except target):
+// Body (all fields optional except target — omitted fields use config.json defaults):
 //
 //	{
 //	  "target":     "https://example.com",   // required
-//	  "method":     "httpget",                // default: httpget
-//	  "workers":    512,                      // default: 512
-//	  "duration":   30,                       // default: 30  (seconds)
-//	  "proxy_file": "/path/to/proxies.txt",   // optional
+//	  "method":     "httpget",
+//	  "workers":    512,
+//	  "duration":   30,
+//	  "proxy_file": "/path/to/proxies.txt",
 //	  "verbose":    false,
-//	  "rate_delay": 0                         // ms between requests per worker
+//	  "rate_delay": 0
 //	}
 func handleStart(w http.ResponseWriter, r *http.Request) {
 	var req StartRequest
@@ -45,19 +45,22 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// apply sensible defaults
+	// apply defaults from config.json
 	if req.Method == "" {
-		req.Method = "httpget"
+		req.Method = cfg.Defaults.Method
 	}
 	req.Method = strings.ToLower(req.Method)
 	if req.Workers == 0 {
-		req.Workers = 512
+		req.Workers = cfg.Defaults.Workers
 	}
 	if req.Duration == 0 {
-		req.Duration = 30
+		req.Duration = cfg.Defaults.Duration
+	}
+	if req.RateDelay == 0 {
+		req.RateDelay = cfg.Defaults.RateDelay
 	}
 
-	cfg := AttackConfig{
+	attackCfg := AttackConfig{
 		Target:    req.Target,
 		Method:    req.Method,
 		Workers:   req.Workers,
@@ -67,16 +70,16 @@ func handleStart(w http.ResponseWriter, r *http.Request) {
 		RateDelay: req.RateDelay,
 	}
 
-	if err := state.Start(cfg); err != nil {
+	if err := state.Start(attackCfg); err != nil {
 		fail(w, http.StatusConflict, err.Error())
 		return
 	}
 
 	ok200(w, "attack started", map[string]interface{}{
-		"target":   cfg.Target,
-		"method":   cfg.Method,
-		"workers":  cfg.Workers,
-		"duration": cfg.Duration,
+		"target":   attackCfg.Target,
+		"method":   attackCfg.Method,
+		"workers":  attackCfg.Workers,
+		"duration": attackCfg.Duration,
 	})
 }
 
@@ -91,8 +94,7 @@ func handleStop(w http.ResponseWriter, r *http.Request) {
 
 // handleStatus handles GET /api/attack/status
 func handleStatus(w http.ResponseWriter, r *http.Request) {
-	status := state.Status()
-	ok200(w, "ok", status)
+	ok200(w, "ok", state.Status())
 }
 
 // handleHealth handles GET /api/health

@@ -93,29 +93,51 @@ BINARY_SIZE=$(du -sh slayer | cut -f1)
 ok "Binary built → ./slayer (${BINARY_SIZE})"
 sep
 
-# ── 6. Environment variables ──────────────────────────────────────────────────
-info "Checking environment variables"
+# ── 6. Validate config.json ───────────────────────────────────────────────────
+info "Validating config.json"
 
-MISSING=()
+CONFIG_FILE="config.json"
 
-if [ -z "${SUPABASE_URL:-}" ]; then
-  MISSING+=("SUPABASE_URL")
-  warn "SUPABASE_URL not set"
-else
-  ok "SUPABASE_URL = ${SUPABASE_URL}"
+if [ ! -f "$CONFIG_FILE" ]; then
+  fail "config.json not found — copy config.json into this directory and re-run."
 fi
 
-if [ -z "${SUPABASE_SERVICE_KEY:-}" ]; then
-  MISSING+=("SUPABASE_SERVICE_KEY")
-  warn "SUPABASE_SERVICE_KEY not set"
+# Check required keys exist and are non-empty
+SB_URL=$(grep -o '"url"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | head -1 | grep -o '"[^"]*"
+
+# ── 7. Summary ────────────────────────────────────────────────────────────────
+echo
+echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
+echo
+echo -e "  Run the API server:"
+echo -e "  ${CYAN}${BOLD}  ./slayer -api${RESET}"
+echo
+echo -e "  Or let the workflow handle it automatically."
+echo
+ | tr -d '"')
+SB_KEY=$(grep -o '"service_key"[[:space:]]*:[[:space:]]*"[^"]*"' "$CONFIG_FILE" | head -1 | grep -o '"[^"]*"
+
+# ── 7. Summary ────────────────────────────────────────────────────────────────
+echo
+echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
+echo
+echo -e "  Run the API server:"
+echo -e "  ${CYAN}${BOLD}  ./slayer -api${RESET}"
+echo
+echo -e "  Or let the workflow handle it automatically."
+echo
+ | tr -d '"')
+
+if [ -z "$SB_URL" ]; then
+  warn "supabase.url is empty in config.json"
 else
-  ok "SUPABASE_SERVICE_KEY is set"
+  ok "supabase.url = ${SB_URL}"
 fi
 
-if [ ${#MISSING[@]} -gt 0 ]; then
-  echo
-  warn "Missing secrets: ${MISSING[*]}"
-  echo -e "     ${DIM}→ Add them in the Replit Secrets panel (🔒) and re-run.${RESET}"
+if [ -z "$SB_KEY" ]; then
+  warn "supabase.service_key is empty in config.json"
+else
+  ok "supabase.service_key is set"
 fi
 sep
 

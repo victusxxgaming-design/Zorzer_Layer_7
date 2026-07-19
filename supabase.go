@@ -18,13 +18,12 @@ type sbClient struct {
 	http       *http.Client
 }
 
-// newSupabaseClient builds a client from env vars.
-// Required env vars: SUPABASE_URL, SUPABASE_SERVICE_KEY
+// newSupabaseClient builds a client from config.json values.
 func newSupabaseClient() (*sbClient, error) {
-	u := os.Getenv("SUPABASE_URL")
-	k := os.Getenv("SUPABASE_SERVICE_KEY")
+	u := cfg.Supabase.URL
+	k := cfg.Supabase.ServiceKey
 	if u == "" || k == "" {
-		return nil, fmt.Errorf("SUPABASE_URL or SUPABASE_SERVICE_KEY not set")
+		return nil, fmt.Errorf("supabase.url or supabase.service_key not set in config.json")
 	}
 	return &sbClient{
 		baseURL:    u,
@@ -69,18 +68,17 @@ func (c *sbClient) do(method, path string, body interface{}, headers map[string]
 
 // ── self-registration ─────────────────────────────────────────────────────────
 
-// selfURL returns the public URL of this Replit instance, derived from
-// REPLIT_DEV_DOMAIN. Falls back to a localhost address if the env var is absent
-// so the tool still works outside Replit.
+// selfURL returns the public URL of this Replit instance from REPLIT_DEV_DOMAIN.
+// Falls back to localhost so the tool works outside Replit too.
 func selfURL() string {
 	if domain := os.Getenv("REPLIT_DEV_DOMAIN"); domain != "" {
 		return "https://" + domain
 	}
-	return "http://localhost:8080"
+	return fmt.Sprintf("http://localhost:%d", cfg.API.Port)
 }
 
-// RegisterSelf checks whether this instance's URL is already recorded in
-// layer7_apis. If not, it inserts a new row. This is called once at startup.
+// RegisterSelf checks whether this instance's URL is already in layer7_apis.
+// If not, it inserts a new row. Called once at startup.
 func RegisterSelf(c *sbClient) error {
 	url := selfURL()
 
@@ -98,7 +96,7 @@ func RegisterSelf(c *sbClient) error {
 		return fmt.Errorf("supabase decode: %w", err)
 	}
 	if len(rows) > 0 {
-		log.Printf("[supabase] URL already registered: %s (id=%v)", url, rows[0]["id"])
+		log.Printf("[supabase] already registered: %s (id=%v)", url, rows[0]["id"])
 		return nil
 	}
 
