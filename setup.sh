@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────────────
-#  Slayer L7 — setup script
+#  Zorzer L7 Stresser — setup script
 #  Installs all dependencies, configures Replit modules, builds the binary.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -27,7 +27,7 @@ cat << 'EOF'
              /____/
 EOF
 echo -e "${RESET}"
-echo -e "${DIM}  Slayer L7 — full environment setup${RESET}"
+echo -e "${DIM}  Zorzer L7 Stresser — full environment setup${RESET}"
 sep
 
 # ── 1. Replit module: go-1.25 ─────────────────────────────────────────────────
@@ -86,11 +86,11 @@ ok "go.mod + go.sum up to date"
 sep
 
 # ── 5. Build ──────────────────────────────────────────────────────────────────
-info "Building slayer binary"
-go build -o slayer . 2>&1 | sed 's/^/     /'
-chmod +x slayer
-BINARY_SIZE=$(du -sh slayer | cut -f1)
-ok "Binary built → ./slayer (${BINARY_SIZE})"
+info "Building zorzer binary"
+go build -o zorzer . 2>&1 | sed 's/^/     /'
+chmod +x zorzer
+BINARY_SIZE=$(du -sh zorzer | cut -f1)
+ok "Binary built → ./zorzer (${BINARY_SIZE})"
 sep
 
 # ── 6. Validate config.json ───────────────────────────────────────────────────
@@ -110,7 +110,7 @@ echo
 echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
 echo
 echo -e "  Run the API server:"
-echo -e "  ${CYAN}${BOLD}  ./slayer -api${RESET}"
+echo -e "  ${CYAN}${BOLD}  ./zorzer -api${RESET}"
 echo
 echo -e "  Or let the workflow handle it automatically."
 echo
@@ -122,7 +122,7 @@ echo
 echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
 echo
 echo -e "  Run the API server:"
-echo -e "  ${CYAN}${BOLD}  ./slayer -api${RESET}"
+echo -e "  ${CYAN}${BOLD}  ./zorzer -api${RESET}"
 echo
 echo -e "  Or let the workflow handle it automatically."
 echo
@@ -146,7 +146,7 @@ echo
 echo -e "${GREEN}${BOLD}  Setup complete.${RESET}"
 echo
 echo -e "  Run the API server:"
-echo -e "  ${CYAN}${BOLD}  ./slayer -api${RESET}"
+echo -e "  ${CYAN}${BOLD}  ./zorzer -api${RESET}"
 echo
 echo -e "  Or let the workflow handle it automatically."
 echo

