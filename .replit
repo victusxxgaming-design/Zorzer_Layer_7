@@ -16,14 +16,19 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "go build -o slayer . && chmod +x slayer && ./slayer -api"
-waitForPort = 8080
-
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "fuser -k 8080/tcp 2>/dev/null || true; go build -o slayer . && chmod +x slayer && ./slayer -api"
+waitForPort = 8080
 
 [[ports]]
 localPort = 8080
 externalPort = 80
+
+[userenv]
+
+[userenv.shared]
+SUPABASE_URL = "https://fyzbqbubsdkjrmppkdsl.supabase.co"

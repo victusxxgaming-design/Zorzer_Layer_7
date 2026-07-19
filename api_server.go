@@ -5,14 +5,34 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"time"
 )
+
+// killPort forcefully frees the given TCP port before binding to it.
+func killPort(port int) {
+	cmd := exec.Command("fuser", "-k", fmt.Sprintf("%d/tcp", port))
+	_ = cmd.Run() // ignore error — port may already be free
+}
 
 // StartAPIServer registers all routes, applies middleware, and blocks on Listen.
 // Port defaults to 8080 if port == 0.
 func StartAPIServer(port int) {
 	if port == 0 {
 		port = 8080
+	}
+
+	// ── free the port ─────────────────────────────────────────────────────────
+	killPort(port)
+
+	// ── supabase self-registration ────────────────────────────────────────────
+	sb, err := newSupabaseClient()
+	if err != nil {
+		log.Printf("[supabase] skipping registration: %v", err)
+	} else {
+		if err := RegisterSelf(sb); err != nil {
+			log.Printf("[supabase] registration failed: %v", err)
+		}
 	}
 
 	mux := http.NewServeMux()
