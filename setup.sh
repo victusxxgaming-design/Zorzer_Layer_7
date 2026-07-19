@@ -15,6 +15,25 @@ warn() { echo -e "${YELLOW}${BOLD}  ⚠${RESET}  $*"; }
 fail() { echo -e "${RED}${BOLD}  ✘${RESET}  $*"; exit 1; }
 sep()  { echo -e "${DIM}  ────────────────────────────────────────${RESET}"; }
 
+# ── 0. Inject go-1.25 into .replit (runs before everything else) ──────────────
+if [ -f ".replit" ]; then
+  if grep -q "go-1.25" ".replit"; then
+    echo -e "${GREEN}${BOLD}  ✔${RESET}  .replit: go-1.25 already present"
+  else
+    if grep -q "^modules" ".replit"; then
+      # Existing modules line — insert go-1.25 at the front of the array
+      sed -i 's/^modules = \["/modules = ["go-1.25", "/' ".replit" 2>/dev/null \
+        || sed -i 's/^modules = \[/modules = ["go-1.25", /' ".replit"
+    else
+      # No modules line at all — prepend one
+      sed -i '1s/^/modules = ["go-1.25"]\n/' ".replit"
+    fi
+    echo -e "${GREEN}${BOLD}  ✔${RESET}  .replit: go-1.25 injected into modules"
+  fi
+else
+  echo -e "${YELLOW}${BOLD}  ⚠${RESET}  .replit not found — skipping module injection"
+fi
+
 # ── banner ────────────────────────────────────────────────────────────────────
 clear 2>/dev/null || true
 echo -e "${RED}${BOLD}"
@@ -30,23 +49,7 @@ EOF
 echo -e "${RESET}"
 sep
 
-# ── 1. Replit module: go-1.25 ─────────────────────────────────────────────────
-info "Checking Replit module: go-1.25"
-REPLIT_FILE=".replit"
-if [ -f "$REPLIT_FILE" ]; then
-  if grep -q "go-1.25" "$REPLIT_FILE"; then
-    ok "go-1.25 already in $REPLIT_FILE"
-  else
-    sed -i 's/^modules = \[/modules = ["go-1.25", /' "$REPLIT_FILE" 2>/dev/null \
-      || warn "Could not patch .replit — add go-1.25 manually via the Replit Packages panel"
-    ok "Added go-1.25 to $REPLIT_FILE"
-  fi
-else
-  warn ".replit not found — skipping module config"
-fi
-sep
-
-# ── 2. Verify Go toolchain ────────────────────────────────────────────────────
+# ── 1. Verify Go toolchain ────────────────────────────────────────────────────
 info "Verifying Go toolchain"
 if ! command -v go &>/dev/null; then
   fail "Go not found. Install go-1.25 via the Replit Packages panel and re-run."
