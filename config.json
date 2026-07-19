@@ -1,7 +1,7 @@
 {
   "supabase": {
-    "url": "enter ur url",
-    "service_key": "enter ur secret"
+    "url": "",
+    "service_key": ""
   },
   "api": {
     "port": 8080
